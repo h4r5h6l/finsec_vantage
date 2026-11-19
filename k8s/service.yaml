@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskmanager
+  namespace: taskmanager
+  labels:
+    app: taskmanager
+spec:
+  # Internal-only ClusterIP: the Ingress controller and in-cluster clients are
+  # the callers. Local access uses `kubectl port-forward`; NodePort or
+  # LoadBalancer would add external exposure without adding routing capability.
+  type: ClusterIP
+  selector:
+    app: taskmanager
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
