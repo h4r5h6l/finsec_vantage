@@ -1,0 +1,35 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} · {{end}}FinOps &amp; SecOps Portal</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">FV</span>
+      <div>
+        <p class="eyebrow">FinSec Vantage</p>
+        <h1>FinOps &amp; SecOps Portal</h1>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Primary">
+      <a href="/">Dashboard</a>
+      <a href="/health">Health</a>
+      <a href="{{.TaskManagerURL}}" target="_blank" rel="noopener">Task manager</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    {{template "content" .}}
+  </main>
+
+  <footer class="footer">
+    <span>Portal preview</span>
+    <span>Environment: <strong>{{.AppEnv}}</strong></span>
+  </footer>
+</body>
+</html>{{end}}

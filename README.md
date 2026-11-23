@@ -1,23 +1,68 @@
 # Task Manager
 
-A Go task manager with a JSON API, server-rendered web UI, and PostgreSQL. It
-runs with Docker Compose or Kubernetes (Minikube).
+[![Release](https://github.com/h4r5h6l/finsec_vantage/actions/workflows/release.yml/badge.svg)](https://github.com/h4r5h6l/finsec_vantage/actions/workflows/release.yml)
+
+A Go task manager with a JSON API, server-rendered web UI, and PostgreSQL, plus
+a FinOps &amp; SecOps Portal preview. It runs with Docker Compose or Kubernetes
+(Minikube), and CI/CD runs on GitHub Actions with images published to GHCR.
 
 ## Repository structure
 
 ```text
 .
-├── cmd/server/       # Application entry point
+├── .github/          # CI, release, and Dependabot configuration
+├── cmd/server/       # Task manager entry point
+├── cmd/portal/       # FinOps & SecOps Portal (M1–M2 preview)
 ├── internal/         # Configuration, database, API, and health handlers
 ├── migrations/       # Embedded PostgreSQL schema migrations
 ├── web/              # HTML handlers, templates, and static assets
-├── k8s/              # Kubernetes app, database, service, ingress, and HPA
+├── k8s/              # Base Kubernetes manifests + GHCR overlay
 ├── loadtest/         # k6 script, results, and load-test report
 ├── Dockerfile
 ├── docker-compose.yaml
 ├── Makefile
 └── README.md
 ```
+
+## CI/CD
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| [`ci.yml`](.github/workflows/ci.yml) | Pull requests, manual runs, and calls from Release | `gofmt`, `go vet`, `go mod tidy -diff`, race-enabled unit tests with coverage, PostgreSQL integration tests, gitleaks, govulncheck, Trivy, kustomize/kubeconform validation, and production + Portal Docker builds |
+| [`release.yml`](.github/workflows/release.yml) | Push to `main`, `v*.*.*` tags, manual runs | Runs CI, builds the production image, scans it with Trivy, pushes it to GHCR, then promotes the scanned digest |
+
+Images are published to `ghcr.io/h4r5h6l/finsec_vantage`:
+
+- `main` publishes `latest`, `main`, and `sha-<short>`.
+- A `v1.2.3` tag publishes `v1.2.3`, `1.2.3`, `1.2`, and `1`.
+
+The pipeline pushes only the immutable full-SHA tag first. Trivy scans that
+digest, and the branch/version tags are created only if the scan passes, so a
+vulnerable image is never promoted. BuildKit also attaches SBOM and provenance
+attestations to the image.
+
+No extra repository secrets are needed. The workflows use the built-in
+`GITHUB_TOKEN` to push to GHCR; if the push is denied, enable **Read and write
+permissions** under *Settings → Actions → General → Workflow permissions*.
+`GITLEAKS_LICENSE` is only required for organization-owned repositories.
+Dependabot (`.github/dependabot.yml`) proposes Go, Docker, and Actions updates
+weekly, and every proposal runs through the same pipeline.
+
+Deploy the published image with the GHCR overlay:
+
+```bash
+kubectl apply -k k8s/overlays/ghcr
+# or
+make k8s-ghcr
+```
+
+GHCR packages are private by default. Either make the package public in its
+GitHub settings or create a pull secret in the cluster and reference it from the
+Deployment. Local Minikube development keeps using `make k8s-up`, which builds
+and loads the local image instead of pulling from GHCR.
+
+The project targets the Go version declared in `go.mod` (Go 1.26); the
+Dockerfile and CI read it from the same place.
 
 ## Run locally
 
@@ -27,6 +72,32 @@ docker compose up -d --build
 
 Open <http://localhost:8080>. Check the app and database connection with
 `curl http://localhost:8080/ready`. Stop the stack with `docker compose down`.
+
+## Portal (M1–M2 preview)
+
+`cmd/portal` is the FinOps & SecOps Portal service described in `port.md`.
+Milestones M1 (Portal image) and M2 (HTML dashboard) are implemented:
+
+- Production image target: `make portal-image` or
+  `docker build --target portal .`.
+- Server-rendered dashboard at `/` using `html/template` and vendored htmx
+  2.0.11 (no npm build). The license is committed next to the library.
+- Liveness probe at `/health` and the `-healthcheck` flag used by the
+  container `HEALTHCHECK`.
+- Configuration through `PORT` (default `8080`), `TASK_MANAGER_URL` (default
+  `http://localhost:8080`), and `APP_ENV`.
+
+Run it against the task manager:
+
+```bash
+make docker-up      # task manager on :8080
+make portal-run     # Portal on :8082
+```
+
+Open <http://localhost:8082>. The dashboard currently shows configured and
+pending states only. Health aggregation (M3), metrics (M4), Trivy ingest
+(M6–M7), drift detection (M9), and cost estimation (M10) are not implemented
+yet, and the UI deliberately does not fake values for them.
 
 ## API
 
@@ -81,6 +152,19 @@ count requirement.
 ## Checks
 
 ```bash
-make test
+make fmt-check
 make vet
+make test
+make test-race
+make ci           # fmt-check + vet + test, the same checks CI runs
 ```
+
+The PostgreSQL repository test is opt-in and needs a disposable database:
+
+```bash
+TEST_DATABASE_URL='postgres://postgres:postgres@localhost:5432/tasks?sslmode=disable' \
+  make test-integration
+```
+
+CI runs it against a `postgres:16-alpine` service container. Locally, start the
+database with `docker compose up -d postgres` first.

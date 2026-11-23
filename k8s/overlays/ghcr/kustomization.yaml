@@ -1,0 +1,29 @@
+# Overlay for the image published by the Release workflow to GHCR.
+#
+#   kubectl apply -k k8s/overlays/ghcr
+#
+# The package is private by default. Either make it public in the package
+# settings on GitHub, or create a pull secret and add imagePullSecrets (see
+# README). Local Minikube development should keep using `make k8s-up`, which
+# loads the locally built image instead of pulling from GHCR.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+images:
+  - name: taskmanager
+    newName: ghcr.io/h4r5h6l/finsec_vantage
+    newTag: latest
+
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: taskmanager
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always

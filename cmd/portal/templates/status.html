@@ -1,0 +1,11 @@
+{{define "status"}}
+<section id="snapshot" class="panel" hx-get="/partials/status" hx-trigger="every 60s" hx-swap="outerHTML">
+  <div>
+    <h2>Portal snapshot</h2>
+    <p class="note">Rendered {{formatTime .Now}} · environment <strong>{{.AppEnv}}</strong></p>
+  </div>
+  <button class="button" type="button" hx-get="/partials/status" hx-target="#snapshot" hx-swap="outerHTML">
+    Refresh
+  </button>
+</section>
+{{end}}

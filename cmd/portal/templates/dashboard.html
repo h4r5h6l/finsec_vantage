@@ -1,0 +1,62 @@
+{{define "content"}}
+<section class="hero">
+  <div>
+    <h2>Cluster posture at a glance</h2>
+    <p>
+      This is the first slice of the FinOps &amp; SecOps Portal. It is
+      server-rendered with embedded templates and htmx; the panels below are
+      activated as the remaining milestones land.
+    </p>
+  </div>
+  <span class="badge badge-preview">Preview</span>
+</section>
+
+<section class="grid" aria-label="Portal modules">
+  <article class="card card-ok">
+    <div class="card-head">
+      <h3>Portal</h3>
+      <span class="badge badge-ok">Running</span>
+    </div>
+    <p class="metric">Online</p>
+    <p class="note">Serving the dashboard on the configured port.</p>
+  </article>
+
+  <article class="card">
+    <div class="card-head">
+      <h3>Task manager</h3>
+      <span class="badge badge-info">Configured</span>
+    </div>
+    <p class="metric metric-small"><code>{{.TaskManagerURL}}</code></p>
+    <p class="note">Live health aggregation is not wired yet; this is the configured upstream URL.</p>
+  </article>
+
+  <article class="card">
+    <div class="card-head">
+      <h3>Security scans</h3>
+      <span class="badge badge-pending">No data</span>
+    </div>
+    <p class="metric metric-small">Awaiting scanner</p>
+    <p class="note">The Trivy ingest endpoint and CronJob are not installed yet.</p>
+  </article>
+
+  <article class="card">
+    <div class="card-head">
+      <h3>Drift detection</h3>
+      <span class="badge badge-pending">Unknown</span>
+    </div>
+    <p class="metric metric-small">Not checked</p>
+    <p class="note">The drift CronJob and its result ConfigMap are not installed yet.</p>
+  </article>
+
+  <article class="card">
+    <div class="card-head">
+      <h3>Cost estimate</h3>
+      <span class="badge badge-pending">Unavailable</span>
+    </div>
+    <p class="metric metric-small">—</p>
+    <p class="note">Pod request pricing is not configured yet. No estimate is shown rather than a misleading zero.</p>
+  </article>
+</section>
+
+{{template "status" .}}
+{{end}}

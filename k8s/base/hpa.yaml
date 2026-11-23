@@ -1,5 +1,5 @@
 # HorizontalPodAutoscaler for the taskmanager Deployment.
-# This resource is included in k8s/kustomization.yaml and is applied with the
+# This resource is included in k8s/base/kustomization.yaml and is applied with the
 # rest of the application manifests. It requires metrics-server for CPU data.
 #
 # Apply and inspect:

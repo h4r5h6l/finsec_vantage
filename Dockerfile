@@ -1,5 +1,5 @@
 # 1) Build: official Go image with the full toolchain.
-FROM golang:1.23-alpine AS build
+FROM golang:1.26-alpine AS build
 
 WORKDIR /src
 
@@ -10,15 +10,16 @@ RUN go mod download
 COPY . .
 
 # CGO is off so the binary is static and runs on distroless (no libc).
-RUN CGO_ENABLED=0 go build -o /out/taskmanager ./cmd/server
+RUN CGO_ENABLED=0 go build -o /out/taskmanager ./cmd/server \
+    && CGO_ENABLED=0 go build -o /out/portal ./cmd/portal
 
 # -----------------------------------------------------------------------------
 # 2) Dev: full toolchain plus Air live reload. Source is bind-mounted.
 # -----------------------------------------------------------------------------
-FROM golang:1.23-alpine AS dev
+FROM golang:1.26-alpine AS dev
 
 RUN apk add --no-cache git \
-    && go install github.com/air-verse/air@v1.61.7
+    && go install github.com/air-verse/air@v1.67.4
 
 WORKDIR /src
 
@@ -35,7 +36,26 @@ EXPOSE 8080
 CMD ["air", "-c", ".air.toml"]
 
 # -----------------------------------------------------------------------------
-# 3) Production: default target. Distroless, non-root, binary only.
+# 3) Portal: FinOps & SecOps Portal image. Same distroless hardening as the app.
+# Build with `docker build --target portal .` or `make portal-image`.
+# -----------------------------------------------------------------------------
+FROM gcr.io/distroless/static-debian12:nonroot AS portal
+
+WORKDIR /app
+
+COPY --from=build /out/portal /app/portal
+
+EXPOSE 8080
+
+USER nonroot:nonroot
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD ["/app/portal", "-healthcheck", "-healthcheck-path", "/health"]
+
+ENTRYPOINT ["/app/portal"]
+
+# -----------------------------------------------------------------------------
+# 4) Production: default target. Distroless, non-root, binary only.
 # Must remain the final stage so `docker build .` builds production.
 # -----------------------------------------------------------------------------
 FROM gcr.io/distroless/static-debian12:nonroot AS production
