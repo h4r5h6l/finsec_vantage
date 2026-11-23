@@ -6,7 +6,7 @@ metadata:
   labels:
     app: taskmanager
 spec:
-  # Initial replica count; the HPA in k8s/hpa.yaml manages this during runtime.
+  # Initial replica count; the HPA in k8s/base/hpa.yaml manages this during runtime.
   replicas: 1
   selector:
     matchLabels:

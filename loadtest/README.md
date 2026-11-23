@@ -38,8 +38,8 @@ produced impossible throughput.
   `make k8s-up` (or `make k8s-image`).
 - `metrics-server` is enabled so the HPA has CPU data:
   `minikube addons enable metrics-server`.
-- The HPA is applied. `k8s/hpa.yaml` is listed in `k8s/kustomization.yaml`, so
-  `kubectl apply -k k8s/` creates it.
+- The HPA is applied. `k8s/base/hpa.yaml` is listed in
+  `k8s/base/kustomization.yaml`, so `kubectl apply -k k8s/` creates it.
 
 Verify before testing:
 
@@ -162,7 +162,7 @@ maximum of 5 during this run.
 `290m` against a `200m` request reports `145%`, and the HPA reacts by adding
 replicas. Metrics are also sampled periodically, so the displayed value can stay
 above the target while new pods start and while the metrics-server window catches
-up. See `k8s/hpa.yaml` for the scale-up/scale-down policies.
+up. See `k8s/base/hpa.yaml` for the scale-up/scale-down policies.
 
 After the run, the `120s` scale-down stabilization window and the
 `1 pod / 60s` scale-down policy return the Deployment to one replica.
@@ -171,12 +171,12 @@ After the run, the `120s` scale-down stabilization window and the
 > The manifest still declares `replicas: 1`, but the live value can temporarily
 > be 2–5 during or just after a load test. For a strict graded single-replica
 > state, delete the HPA and re-apply the base manifests. If `hpa.yaml` remains in
-> `k8s/kustomization.yaml`, remove it there first; otherwise `kubectl apply -k`
+> `k8s/base/kustomization.yaml`, remove it there first; otherwise `kubectl apply -k`
 > recreates the HPA.
 
 ```bash
-kubectl delete -f k8s/hpa.yaml
-# remove "- hpa.yaml" from k8s/kustomization.yaml for a permanent single-replica state
+kubectl delete -f k8s/base/hpa.yaml
+# remove "- hpa.yaml" from k8s/base/kustomization.yaml for a permanent single-replica state
 kubectl apply -k k8s/
 kubectl -n taskmanager get deploy taskmanager -o jsonpath='{.spec.replicas}{"\n"}'  # 1
 ```
