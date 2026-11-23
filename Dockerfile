@@ -1,5 +1,5 @@
 # 1) Build: official Go image with the full toolchain.
-FROM golang:1.26-alpine AS build
+FROM golang:1.27-alpine AS build
 
 WORKDIR /src
 
@@ -16,7 +16,7 @@ RUN CGO_ENABLED=0 go build -o /out/taskmanager ./cmd/server \
 # -----------------------------------------------------------------------------
 # 2) Dev: full toolchain plus Air live reload. Source is bind-mounted.
 # -----------------------------------------------------------------------------
-FROM golang:1.26-alpine AS dev
+FROM golang:1.27-alpine AS dev
 
 RUN apk add --no-cache git \
     && go install github.com/air-verse/air@v1.67.4
