@@ -12,7 +12,7 @@ a FinOps &amp; SecOps Portal preview. It runs with Docker Compose or Kubernetes
 .
 ├── .github/          # CI, release, and Dependabot configuration
 ├── cmd/server/       # Task manager entry point
-├── cmd/portal/       # FinOps & SecOps Portal (M1–M2 preview)
+├── cmd/portal/       # FinOps & SecOps Portal (M1–M3 preview)
 ├── internal/         # Configuration, database, API, and health handlers
 ├── migrations/       # Embedded PostgreSQL schema migrations
 ├── web/              # HTML handlers, templates, and static assets
@@ -61,8 +61,8 @@ GitHub settings or create a pull secret in the cluster and reference it from the
 Deployment. Local Minikube development keeps using `make k8s-up`, which builds
 and loads the local image instead of pulling from GHCR.
 
-The project targets the Go version declared in `go.mod` (Go 1.26); the
-Dockerfile and CI read it from the same place.
+The project targets Go 1.26.11 (declared in `go.mod`); the Dockerfile pins the
+matching `golang:1.26.11-alpine` build image.
 
 ## Run locally
 
@@ -73,17 +73,26 @@ docker compose up -d --build
 Open <http://localhost:8080>. Check the app and database connection with
 `curl http://localhost:8080/ready`. Stop the stack with `docker compose down`.
 
-## Portal (M1–M2 preview)
+## Portal (M1–M3 preview)
 
 `cmd/portal` is the FinOps & SecOps Portal service described in `port.md`.
-Milestones M1 (Portal image) and M2 (HTML dashboard) are implemented:
+Milestones M1 (Portal image), M2 (HTML dashboard), and M3 (health aggregation)
+are implemented:
 
 - Production image target: `make portal-image` or
   `docker build --target portal .`.
 - Server-rendered dashboard at `/` using `html/template` and vendored htmx
   2.0.11 (no npm build). The license is committed next to the library.
 - Liveness probe at `/health` and the `-healthcheck` flag used by the
-  container `HEALTHCHECK`.
+  container `HEALTHCHECK`. Liveness never calls the task manager.
+- Readiness probe at `/ready` calls the task manager's `/health` and DB-backed
+  `/ready` concurrently. It returns `503` when either upstream probe fails, so
+  a database outage also takes the Portal out of rotation.
+- `GET /api/portal/health` returns the aggregate `portal`, `application`, and
+  `database` components plus an overall `status` (`ok` or `degraded`). It
+  returns `200` because it is a report, not a probe.
+- Upstream probes use a two-second HTTP timeout and a three-second request
+  deadline, so a hung task manager cannot stall the dashboard.
 - Configuration through `PORT` (default `8080`), `TASK_MANAGER_URL` (default
   `http://localhost:8080`), and `APP_ENV`.
 
@@ -94,10 +103,16 @@ make docker-up      # task manager on :8080
 make portal-run     # Portal on :8082
 ```
 
-Open <http://localhost:8082>. The dashboard currently shows configured and
-pending states only. Health aggregation (M3), metrics (M4), Trivy ingest
-(M6–M7), drift detection (M9), and cost estimation (M10) are not implemented
-yet, and the UI deliberately does not fake values for them.
+Open <http://localhost:8082>. The Portal, application, and database cards show
+live status. Security scan, drift, and cost cards still report that data is
+unavailable rather than faking a value; those features land in M6–M10.
+
+Check health from the command line:
+
+```bash
+curl -s http://localhost:8082/api/portal/health | jq
+curl -i http://localhost:8082/ready
+```
 
 ## API
 

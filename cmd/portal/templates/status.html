@@ -1,11 +1,76 @@
 {{define "status"}}
-<section id="snapshot" class="panel" hx-get="/partials/status" hx-trigger="every 60s" hx-swap="outerHTML">
-  <div>
-    <h2>Portal snapshot</h2>
-    <p class="note">Rendered {{formatTime .Now}} · environment <strong>{{.AppEnv}}</strong></p>
+<section id="status-panel" class="status-panel"
+  hx-get="/partials/status" hx-trigger="every 30s" hx-swap="outerHTML">
+  <div class="grid" aria-label="System status">
+    <article class="card card-ok">
+      <div class="card-head">
+        <h3>Portal</h3>
+        <span class="badge {{statusClass .Health.Portal.Status}}">{{.Health.Portal.Status}}</span>
+      </div>
+      <p class="metric">Online</p>
+      <p class="note">Serving the dashboard on the configured port.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <h3>Application</h3>
+        <span class="badge {{statusClass .Health.Application.Status}}">{{.Health.Application.Status}}</span>
+      </div>
+      <p class="metric metric-small">Task manager API</p>
+      <p class="note">
+        {{if .Health.Application.HTTPStatus}}HTTP {{.Health.Application.HTTPStatus}} · {{end}}{{.Health.TaskManagerURL}}/health
+      </p>
+      {{with .Health.Application.Error}}<p class="note note-error">{{.}}</p>{{end}}
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <h3>Database</h3>
+        <span class="badge {{statusClass .Health.Database.Status}}">{{.Health.Database.Status}}</span>
+      </div>
+      <p class="metric metric-small">PostgreSQL readiness</p>
+      <p class="note">
+        {{if .Health.Database.HTTPStatus}}HTTP {{.Health.Database.HTTPStatus}} · {{end}}{{.Health.TaskManagerURL}}/ready
+      </p>
+      {{with .Health.Database.Error}}<p class="note note-error">{{.}}</p>{{end}}
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <h3>Security scans</h3>
+        <span class="badge badge-pending">No data</span>
+      </div>
+      <p class="metric metric-small">Awaiting scanner</p>
+      <p class="note">The Trivy ingest endpoint and CronJob are not installed yet.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <h3>Drift detection</h3>
+        <span class="badge badge-pending">Unknown</span>
+      </div>
+      <p class="metric metric-small">Not checked</p>
+      <p class="note">The drift CronJob and its result ConfigMap are not installed yet.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <h3>Cost estimate</h3>
+        <span class="badge badge-pending">Unavailable</span>
+      </div>
+      <p class="metric metric-small">—</p>
+      <p class="note">Pod request pricing is not configured yet. No estimate is shown rather than a misleading zero.</p>
+    </article>
   </div>
-  <button class="button" type="button" hx-get="/partials/status" hx-target="#snapshot" hx-swap="outerHTML">
-    Refresh
-  </button>
+
+  <div class="panel">
+    <div>
+      <h2>Health snapshot</h2>
+      <p class="note">Checked {{formatTime .Health.CheckedAt}} · environment <strong>{{.AppEnv}}</strong></p>
+    </div>
+    <button class="button" type="button" hx-get="/partials/status" hx-target="#status-panel" hx-swap="outerHTML">
+      Refresh
+    </button>
+  </div>
 </section>
 {{end}}
