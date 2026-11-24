@@ -207,9 +207,25 @@ code {
   color: var(--ok);
 }
 
+.badge-bad {
+  background: #fde8e8;
+  color: #a31818;
+}
+
 .badge-pending {
   background: var(--warn-soft);
   color: var(--warn);
+}
+
+.status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.note-error {
+  color: #a31818;
+  word-break: break-word;
 }
 
 .panel {
